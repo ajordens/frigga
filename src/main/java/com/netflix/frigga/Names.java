@@ -15,8 +15,12 @@
  */
 package com.netflix.frigga;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Class that can deconstruct information about AWS Auto Scaling Groups, Load Balancers, Launch Configurations, and
@@ -39,6 +43,7 @@ public class Names {
     private static final Pattern LABELED_USED_BY_KEY_PATTERN = createLabeledVariablePattern(NameConstants.USED_BY_KEY);
     private static final Pattern LABELED_RED_BLACK_SWAP_KEY_PATTERN = createLabeledVariablePattern(NameConstants.RED_BLACK_SWAP_KEY);
     private static final Pattern LABELED_ZONE_KEY_PATTERN = createLabeledVariablePattern(NameConstants.ZONE_KEY);
+    private static final Pattern LABELED_SHARD_KEY_PATTERN = createMultiLabeledVariablePattern(NameConstants.SHARD_KEY);
 
     private String group;
     private String cluster;
@@ -55,6 +60,8 @@ public class Names {
     private String usedBy;
     private String redBlackSwap;
     private String zone;
+
+    private List<String> shards;
 
     protected Names(String name) {
         if (name == null || name.trim().isEmpty()) {
@@ -102,6 +109,8 @@ public class Names {
         usedBy       = extractLabeledVariable(labeledVariables, LABELED_USED_BY_KEY_PATTERN);
         redBlackSwap = extractLabeledVariable(labeledVariables, LABELED_RED_BLACK_SWAP_KEY_PATTERN);
         zone         = extractLabeledVariable(labeledVariables, LABELED_ZONE_KEY_PATTERN);
+
+        shards = extractLabeledVariables(labeledVariables, LABELED_SHARD_KEY_PATTERN);
     }
 
     /**
@@ -125,6 +134,24 @@ public class Names {
         }
         return null;
     }
+
+  private List<String> extractLabeledVariables(String labeledVariablesString, Pattern labelPattern) {
+      List<String> extractedVariables = new ArrayList<>();
+
+      if (labeledVariablesString != null && !labeledVariablesString.isEmpty()) {
+          Matcher labelMatcher = labelPattern.matcher(labeledVariablesString);
+
+          while (labelMatcher.find()) {
+              for (int i = 1; i <= labelMatcher.groupCount(); i++) {
+                  if (labelMatcher.group(i) != null) {
+                      extractedVariables.add(labelMatcher.group(i));
+                  }
+              }
+          }
+      }
+
+      return extractedVariables;
+  }
 
     private String checkEmpty(String input) {
         return (input != null && !input.isEmpty()) ? input : null;
@@ -190,7 +217,11 @@ public class Names {
         return zone;
     }
 
-    @Override
+    public List<String> getShards() {
+        return shards;
+    }
+
+  @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
@@ -309,7 +340,15 @@ public class Names {
 
     private static Pattern createLabeledVariablePattern(String label) {
         return Pattern.compile(
-            ".*?-" + label + NameConstants.LABELED_VAR_SEPARATOR + "(["
+            ".*?-" + label + "[" + NameConstants.LABELED_VAR_SEPARATOR + "]" + "(["
                 + NameConstants.NAME_CHARS + "]*).*?$");
     }
+
+  private static Pattern createMultiLabeledVariablePattern(String label) {
+      return Pattern.compile(
+          IntStream.range(0, 9)
+              .mapToObj(value -> label + value + "([" + NameConstants.NAME_CHARS + "]*)")
+              .collect(Collectors.joining("|"))
+      );
+  }
 }

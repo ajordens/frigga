@@ -474,4 +474,14 @@ class NamesSpec extends Specification {
         names.detail == "cluster"
         names.sequence == null
     }
+
+    def "should dissect shard names"() {
+      when:
+      Names names = Names.parseName("app-stack-more-d0prod-x0ps3-x1xbox-c0northamerica-x2ps4-x8ps1")
+
+      then:
+      names.shards == ["ps3","xbox","ps4","ps1"]
+      names.countries == "northamerica"
+      names.devPhase == "prod"
+    }
 }
