@@ -477,11 +477,13 @@ class NamesSpec extends Specification {
 
     def "should dissect shard names"() {
       when:
-      Names names = Names.parseName("app-stack-more-d0prod-x0ps3-x1xbox-c0northamerica-x2ps4-x8ps1")
+      Names names = Names.parseName("app-stack-more-d0prod-x0ps3-x1xbox-c0northamerica-x2ps4-x8ps1-v001")
 
       then:
       names.shards == ["ps3","xbox","ps4","ps1"]
       names.countries == "northamerica"
       names.devPhase == "prod"
+      names.cluster == "app-stack-more-d0prod-x0ps3-x1xbox-c0northamerica-x2ps4-x8ps1"
+      names.detail == "more"
     }
 }
